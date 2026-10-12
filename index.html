@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101510">
+  <title>Eine Überraschung wartet …</title>
+  <style>
+    :root { color-scheme: dark; --bg:#101510; --panel:#1a241d; --accent:#7ee787; --text:#f3f7f3; --muted:#b7c4b9; }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100vh; display:grid; place-items:center; padding:24px;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      color:var(--text); background:radial-gradient(ellipse at top,#203426 0%,var(--bg) 60%);
+    }
+    main { width:min(720px,100%); text-align:center; }
+    .card { padding:clamp(22px,5vw,42px); background:rgba(26,36,29,.94); border:1px solid #34483a; border-radius:24px; box-shadow:0 18px 70px #0006; }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:.78rem; font-weight:800; }
+    h1 { margin:.5rem 0 1rem; font-size:clamp(1.8rem,6vw,3rem); line-height:1.1; }
+    p { color:var(--muted); line-height:1.6; }
+    .timer { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:28px 0; }
+    .unit { padding:18px 8px; background:#101812; border:1px solid #2c3e30; border-radius:14px; }
+    .number { display:block; color:var(--accent); font-size:clamp(1.6rem,6vw,2.7rem); font-weight:800; font-variant-numeric:tabular-nums; }
+    .label { display:block; margin-top:5px; color:var(--muted); font-size:.82rem; }
+    #surprise { display:none; animation:appear .8s ease both; }
+    #surprise img { display:block; width:100%; max-height:70vh; object-fit:contain; margin:22px auto 0; border-radius:16px; }
+    #imageError { display:none; color:#ffb4ab; }
+    footer { margin-top:18px; color:#87958a; font-size:.78rem; }
+    @keyframes appear { from {opacity:0; transform:translateY(12px) scale(.98)} to {opacity:1; transform:translateY(0) scale(1)} }
+    @media (max-width:430px) { .timer { gap:6px; } .unit { padding:14px 3px; } .label { font-size:.7rem; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card" aria-live="polite">
+      <div class="eyebrow" id="eyebrow">Eine kleine Überraschung</div>
+      <div id="countdownView">
+        <h1>Die Überraschung kommt bald …</h1>
+        <p>Warte bis der Countdown abgelaufen ist.</p>
+        <div class="timer" role="timer" aria-label="Verbleibende Zeit">
+          <div class="unit"><span class="number" id="days">0</span><span class="label">Tage</span></div>
+          <div class="unit"><span class="number" id="hours">00</span><span class="label">Stunden</span></div>
+          <div class="unit"><span class="number" id="minutes">00</span><span class="label">Minuten</span></div>
+          <div class="unit"><span class="number" id="seconds">00</span><span class="label">Sekunden</span></div>
+        </div>
+        <p id="targetText"></p>
+      </div>
+      <div id="surprise">
+        <h1>Jetzt ist es so weit! ❤️</h1>
+        <p>Hier ist deine Überraschung.</p>
+        <img id="surpriseImage" src="ueberraschung.png" alt="Deine Überraschung">
+        <p id="imageError">Das Bild konnte nicht geladen werden. Prüfe den Bildpfad in der HTML-Datei.</p>
+      </div>
+    </section>
+    <footer>Der Countdown richtet sich nach dem festgelegten Zeitpunkt und der Uhr des Geräts.</footer>
+  </main>
+
+  <script>
+    /*
+      EINSTELLEN:
+      1) TARGET_DATE: Datum und Uhrzeit mit Zeitzonenangabe.
+         Beispiel für Deutschland im Sommer: "2026-10-19T18:00:00+02:00"
+         Im Winter gilt in Deutschland normalerweise +01:00.
+      2) IMAGE_PATH: Bilddatei neben dieser HTML-Datei, z. B. "ueberraschung.jpg"
+         oder eine vollständige https://-Bildadresse.
+    */
+    const TARGET_DATE = "2026-10-17T12:00:00+02:00";
+    const IMAGE_PATH = "ueberraschung.png";
+
+    const target = new Date(TARGET_DATE);
+    const countdownView = document.getElementById("countdownView");
+    const surprise = document.getElementById("surprise");
+    const image = document.getElementById("surpriseImage");
+    image.src = IMAGE_PATH;
+
+    const pad = n => String(n).padStart(2, "0");
+
+    function showSurprise() {
+      countdownView.style.display = "none";
+      surprise.style.display = "block";
+      document.getElementById("eyebrow").textContent = "Der Moment ist da";
+      document.title = "Deine Überraschung ❤️";
+    }
+
+    function updateCountdown() {
+      const remaining = target.getTime() - Date.now();
+
+      if (!Number.isFinite(target.getTime())) {
+        document.getElementById("targetText").textContent = "Fehler: Bitte TARGET_DATE in der HTML-Datei prüfen.";
+        return;
+      }
+
+      if (remaining <= 0) {
+        showSurprise();
+        return;
+      }
+
+      const totalSeconds = Math.floor(remaining / 1000);
+      document.getElementById("days").textContent = Math.floor(totalSeconds / 86400);
+      document.getElementById("hours").textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
+      document.getElementById("minutes").textContent = pad(Math.floor((totalSeconds % 3600) / 60));
+      document.getElementById("seconds").textContent = pad(totalSeconds % 60);
+      document.getElementById("targetText").textContent =
+        "Freigabe am " + target.toLocaleString("de-DE", { dateStyle: "long", timeStyle: "short" });
+    }
+
+    image.addEventListener("error", () => {
+      document.getElementById("imageError").style.display = "block";
+    });
+
+    updateCountdown();
+    setInterval(updateCountdown, 250);
+  </script>
+</body>
+</html>
